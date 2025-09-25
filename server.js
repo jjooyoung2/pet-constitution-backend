@@ -15,11 +15,7 @@ const app = express();
 
 // 미들웨어 설정
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://pet-constitution-pccobv8xv-jooyoungs-projects-93ed2427.vercel.app',
-    'https://pet-constitution-app.vercel.app'
-  ],
+  origin: true, // 모든 도메인 허용
   credentials: true
 }));
 app.use(bodyParser.json());
