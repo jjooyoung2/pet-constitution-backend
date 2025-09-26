@@ -1,25 +1,42 @@
 const bcrypt = require('bcryptjs');
 const db = require('./database');
 
-// 관리자 계정 생성 스크립트
+// 관리자 계정 생성 또는 권한 부여 스크립트
 const createAdmin = async () => {
   const adminEmail = 'admin@onsol.com';
   const adminPassword = 'admin123!';
   const adminName = '관리자';
 
   try {
-    // 기존 관리자 계정 확인
-    db.get('SELECT id FROM users WHERE email = ?', [adminEmail], async (err, existingUser) => {
+    // 기존 사용자 확인
+    db.get('SELECT id, is_admin FROM users WHERE email = ?', [adminEmail], async (err, existingUser) => {
       if (err) {
         console.error('데이터베이스 오류:', err.message);
         return;
       }
 
       if (existingUser) {
-        console.log('관리자 계정이 이미 존재합니다.');
-        console.log('이메일:', adminEmail);
-        console.log('비밀번호:', adminPassword);
-        return;
+        if (existingUser.is_admin) {
+          console.log('관리자 계정이 이미 존재합니다.');
+          console.log('이메일:', adminEmail);
+          return;
+        } else {
+          // 기존 사용자를 관리자로 승격
+          db.run(
+            'UPDATE users SET is_admin = 1 WHERE email = ?',
+            [adminEmail],
+            function(err) {
+              if (err) {
+                console.error('관리자 권한 부여 오류:', err.message);
+                return;
+              }
+              console.log('✅ 기존 사용자가 관리자로 승격되었습니다!');
+              console.log('📧 이메일:', adminEmail);
+              db.close();
+            }
+          );
+          return;
+        }
       }
 
       // 비밀번호 해시화
@@ -52,4 +69,6 @@ const createAdmin = async () => {
 
 // 스크립트 실행
 createAdmin();
+
+
 
