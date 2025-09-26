@@ -4,6 +4,11 @@ const initDatabase = async () => {
   try {
     console.log('🔧 데이터베이스 초기화 시작...');
     
+    // 연결 테스트
+    const client = await pool.connect();
+    console.log('✅ PostgreSQL 연결 성공!');
+    client.release();
+    
     // 사용자 테이블 생성
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -15,6 +20,7 @@ const initDatabase = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ users 테이블 생성 완료!');
     
     // 결과 테이블 생성
     await pool.query(`
