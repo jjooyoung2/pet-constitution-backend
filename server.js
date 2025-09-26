@@ -4,8 +4,9 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const config = require('./config');
 
-// 관리자 계정 생성 스크립트 실행
-require('./create-admin');
+// 데이터베이스 초기화
+const initDatabase = require('./init-db');
+initDatabase();
 
 // 라우터 import
 const authRoutes = require('./routes/auth');
