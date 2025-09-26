@@ -3,7 +3,8 @@ const db = require('./database');
 
 // 관리자 계정 생성 또는 권한 부여 스크립트
 const createAdmin = async () => {
-  const adminEmail = 'bjy9409292@gmail.com'; // 현재 사용 중인 이메일
+  console.log('🔧 create-admin.js 실행 시작');
+  const adminEmail = 'admin@onsol.com'; // 관리자 이메일
   const adminPassword = 'admin123!';
   const adminName = '관리자';
 
