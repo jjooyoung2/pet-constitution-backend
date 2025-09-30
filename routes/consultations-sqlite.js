@@ -5,7 +5,7 @@ const { optionalAuth, authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 // 상담 예약 저장
-router.post('/', optionalAuth, async (req, res) => {
+router.post('/', optionalAuth, (req, res) => {
   console.log('=== CONSULTATION API CALLED ===');
   console.log('Request body:', JSON.stringify(req.body, null, 2));
   console.log('Headers:', req.headers);
@@ -75,21 +75,27 @@ router.post('/', optionalAuth, async (req, res) => {
     }
 
     // 상담 예약 저장
-    const result = await db.query(
+    db.run(
       `INSERT INTO consultations (user_id, name, phone, preferred_date, content, status, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [userId, name, phone, preferredDate, content, 'pending', new Date().toISOString()]
-    );
-
-    console.log('Consultation saved successfully with ID:', result.rows[0].id);
-    res.status(201).json({ 
-      success: true, 
-      message: '상담 예약이 성공적으로 저장되었습니다.',
-      data: {
-        consultationId: result.rows[0].id
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [userId, name, phone, preferredDate, content, 'pending', new Date().toISOString()],
+      function(err) {
+        if (err) {
+          console.error('Error saving consultation:', err.message);
+          return res.status(500).json({ 
+            success: false, 
+            message: '상담 예약 저장 중 오류가 발생했습니다.' 
+          });
+        }
+        
+        console.log('Consultation saved successfully with ID:', this.lastID);
+        res.status(201).json({ 
+          success: true, 
+          message: '상담 예약이 성공적으로 저장되었습니다.',
+          consultationId: this.lastID
+        });
       }
-    });
-
+    );
   } catch (error) {
     console.error('Server error in /api/consultations POST:', error);
     res.status(500).json({ 
@@ -100,25 +106,33 @@ router.post('/', optionalAuth, async (req, res) => {
 });
 
 // 사용자별 상담 예약 목록 조회
-router.get('/my-consultations', authenticateToken, async (req, res) => {
+router.get('/my-consultations', authenticateToken, (req, res) => {
   console.log('=== GET MY CONSULTATIONS ===');
   console.log('User:', req.user);
   
   try {
-    const result = await db.query(
+    db.all(
       `SELECT id, name, phone, preferred_date, content, status, created_at, updated_at
        FROM consultations 
-       WHERE user_id = $1
+       WHERE user_id = ?
        ORDER BY created_at DESC`,
-      [req.user.userId]
+      [req.user.userId],
+      (err, rows) => {
+        if (err) {
+          console.error('Error fetching user consultations:', err.message);
+          return res.status(500).json({ 
+            success: false, 
+            message: '상담 예약 목록 조회 중 오류가 발생했습니다.' 
+          });
+        }
+        
+        console.log('Fetched user consultations:', rows.length);
+        res.json({ 
+          success: true, 
+          data: { consultations: rows }
+        });
+      }
     );
-
-    console.log('Fetched user consultations:', result.rows.length);
-    res.json({ 
-      success: true, 
-      data: { consultations: result.rows }
-    });
-
   } catch (error) {
     console.error('Server error in /api/consultations/my-consultations GET:', error);
     res.status(500).json({ 
@@ -129,22 +143,31 @@ router.get('/my-consultations', authenticateToken, async (req, res) => {
 });
 
 // 상담 예약 목록 조회 (관리자용)
-router.get('/', async (req, res) => {
+router.get('/', (req, res) => {
   console.log('=== GET CONSULTATIONS ===');
   
   try {
-    const result = await db.query(
+    db.all(
       `SELECT id, name, phone, preferred_date, content, status, created_at
        FROM consultations 
-       ORDER BY created_at DESC`
+       ORDER BY created_at DESC`,
+      [],
+      (err, rows) => {
+        if (err) {
+          console.error('Error fetching consultations:', err.message);
+          return res.status(500).json({ 
+            success: false, 
+            message: '상담 예약 목록 조회 중 오류가 발생했습니다.' 
+          });
+        }
+        
+        console.log('Fetched consultations:', rows.length);
+        res.json({ 
+          success: true, 
+          data: { consultations: rows }
+        });
+      }
     );
-
-    console.log('Fetched consultations:', result.rows.length);
-    res.json({ 
-      success: true, 
-      data: { consultations: result.rows }
-    });
-
   } catch (error) {
     console.error('Server error in /api/consultations GET:', error);
     res.status(500).json({ 
@@ -155,7 +178,7 @@ router.get('/', async (req, res) => {
 });
 
 // 상담 예약 상태 업데이트 (관리자용)
-router.put('/:id/status', async (req, res) => {
+router.put('/:id/status', (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   
@@ -170,24 +193,32 @@ router.put('/:id/status', async (req, res) => {
   }
   
   try {
-    const result = await db.query(
-      `UPDATE consultations SET status = $1, updated_at = $2 WHERE id = $3`,
-      [status, new Date().toISOString(), id]
+    db.run(
+      `UPDATE consultations SET status = ?, updated_at = ? WHERE id = ?`,
+      [status, new Date().toISOString(), id],
+      function(err) {
+        if (err) {
+          console.error('Error updating consultation status:', err.message);
+          return res.status(500).json({ 
+            success: false, 
+            message: '상담 예약 상태 업데이트 중 오류가 발생했습니다.' 
+          });
+        }
+        
+        if (this.changes === 0) {
+          return res.status(404).json({
+            success: false,
+            message: '해당 상담 예약을 찾을 수 없습니다.'
+          });
+        }
+        
+        console.log('Consultation status updated successfully');
+        res.json({ 
+          success: true, 
+          message: '상담 예약 상태가 업데이트되었습니다.'
+        });
+      }
     );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({
-        success: false,
-        message: '해당 상담 예약을 찾을 수 없습니다.'
-      });
-    }
-
-    console.log('Consultation status updated successfully');
-    res.json({ 
-      success: true, 
-      message: '상담 예약 상태가 업데이트되었습니다.'
-    });
-
   } catch (error) {
     console.error('Server error in /api/consultations PUT:', error);
     res.status(500).json({ 

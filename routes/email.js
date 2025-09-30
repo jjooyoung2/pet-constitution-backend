@@ -1,18 +1,14 @@
 require('dotenv').config({ path: '../.env' });
 const express = require('express');
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const mealPlans = require('../data/mealPlans');
 
 const router = express.Router();
 
-// 이메일 발송 설정 (Gmail 사용)
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER || 'bjy9409292@gmail.com',
-    pass: process.env.EMAIL_PASS || 'vnmxucionjssfwez'
-  }
-});
+// SendGrid 설정
+sgMail.setApiKey(process.env.SENDGRID_API_KEY || 'SG.test-key');
+
+console.log('SendGrid API Key 설정 완료');
 
 // 이메일 템플릿 생성
 const createEmailTemplate = (constitution, petName, mealPlan) => {
@@ -97,20 +93,31 @@ const createEmailTemplate = (constitution, petName, mealPlan) => {
 };
 
 // 식단 샘플 이메일 발송
-router.post('/send-meal-plan', (req, res) => {
+router.post('/send-meal-plan', async (req, res) => {
   try {
+    console.log('=== 이메일 발송 요청 받음 ===');
+    console.log('요청 본문:', req.body);
+    console.log('요청 헤더:', req.headers);
+    
     const { email, constitution, petName } = req.body;
     
     // 입력값 검증
     if (!email || !constitution || !petName) {
+      console.log('입력값 검증 실패:', { email, constitution, petName });
       return res.status(400).json({
         success: false,
         message: '이메일, 체질, 반려동물 이름이 필요합니다.'
       });
     }
     
+    console.log('입력값 검증 통과:', { email, constitution, petName });
+    
     // 체질에 맞는 식단 데이터 가져오기
+    console.log('요청된 체질:', constitution);
+    console.log('사용 가능한 체질들:', Object.keys(mealPlans));
     const mealPlan = mealPlans[constitution];
+    console.log('찾은 식단 데이터:', mealPlan ? '존재함' : '없음');
+    
     if (!mealPlan) {
       return res.status(400).json({
         success: false,
@@ -121,39 +128,26 @@ router.post('/send-meal-plan', (req, res) => {
     // 이메일 템플릿 생성
     const htmlContent = createEmailTemplate(constitution, petName, mealPlan);
     
-    // 이메일 옵션 설정
-    const mailOptions = {
-      from: 'bjy9409292@gmail.com', // 직접 설정
+    // SendGrid 이메일 옵션 설정
+    const msg = {
       to: email,
+      from: 'bjy9409292@gmail.com', // SendGrid에서 인증된 발신자
       subject: `🐾 ${petName}님의 ${constitution} 체질 맞춤 7일 식단 샘플`,
       html: htmlContent
     };
     
-    // 실제 이메일 발송
-    console.log('이메일 발송 시도:', {
-      from: mailOptions.from,
-      to: mailOptions.to,
-      subject: mailOptions.subject
+    // SendGrid로 이메일 발송
+    console.log('SendGrid 이메일 발송 시도:', {
+      to: msg.to,
+      from: msg.from,
+      subject: msg.subject
     });
     
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error('이메일 발송 오류:', error);
-        console.error('오류 코드:', error.code);
-        console.error('오류 응답:', error.response);
-        
-        return res.status(500).json({
-          success: false,
-          message: '이메일 발송에 실패했습니다. Gmail 설정을 확인해주세요.',
-          error: error.message
-        });
-      }
-      
-      console.log('이메일 발송 성공:', info.messageId);
-      res.json({
-        success: true,
-        message: '7일 식단 샘플이 이메일로 발송되었습니다.'
-      });
+    const response = await sgMail.send(msg);
+    console.log('SendGrid 이메일 발송 성공:', response[0].statusCode);
+    res.json({
+      success: true,
+      message: '7일 식단 샘플이 이메일로 발송되었습니다.'
     });
     
   } catch (error) {
