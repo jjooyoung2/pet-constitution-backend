@@ -17,28 +17,14 @@ pool.on('error', (err) => {
   console.error('PostgreSQL 연결 오류:', err);
 });
 
-// 테이블 생성
+// 테이블 생성 (단순화)
 const initDatabase = async () => {
   try {
     console.log('데이터베이스 초기화 시작...');
     
-    // 테이블이 이미 존재하는지 확인
-    const checkUsers = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'users'
-      );
-    `);
-    
-    if (checkUsers.rows[0].exists) {
-      console.log('테이블이 이미 존재합니다. 초기화를 건너뜁니다.');
-      return;
-    }
-
     // 사용자 테이블
     await pool.query(`
-      CREATE TABLE users (
+      CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
@@ -52,7 +38,7 @@ const initDatabase = async () => {
 
     // 결과 테이블
     await pool.query(`
-      CREATE TABLE results (
+      CREATE TABLE IF NOT EXISTS results (
         id SERIAL PRIMARY KEY,
         user_id INTEGER,
         pet_name VARCHAR(255) NOT NULL,
@@ -68,7 +54,7 @@ const initDatabase = async () => {
 
     // 상담 예약 테이블
     await pool.query(`
-      CREATE TABLE consultations (
+      CREATE TABLE IF NOT EXISTS consultations (
         id SERIAL PRIMARY KEY,
         user_id INTEGER,
         name VARCHAR(255) NOT NULL,
