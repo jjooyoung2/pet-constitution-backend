@@ -1,7 +1,16 @@
 const sgMail = require('@sendgrid/mail');
 
 // SendGrid API 키 설정
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const apiKey = process.env.SENDGRID_API_KEY;
+console.log('SendGrid API Key exists:', !!apiKey);
+console.log('SendGrid API Key length:', apiKey ? apiKey.length : 0);
+
+if (!apiKey) {
+  console.error('SENDGRID_API_KEY is not set!');
+  throw new Error('SENDGRID_API_KEY environment variable is required');
+}
+
+sgMail.setApiKey(apiKey);
 
 // 이메일 전송 함수
 const sendDietEmail = async (to, petInfo, constitution, answers) => {
@@ -28,7 +37,9 @@ const sendDietEmail = async (to, petInfo, constitution, answers) => {
     
   } catch (error) {
     console.error('이메일 전송 오류:', error);
-    return { success: false, message: '이메일 전송에 실패했습니다.' };
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    return { success: false, message: `이메일 전송에 실패했습니다: ${error.message}` };
   }
 };
 

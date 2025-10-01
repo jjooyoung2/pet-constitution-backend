@@ -207,9 +207,28 @@ router.post('/send-email', authenticateToken, async (req, res) => {
     }
     
     const resultData = result.rows[0];
-    const petInfo = JSON.parse(resultData.pet_info);
-    const answers = JSON.parse(resultData.answers);
+    console.log('Result data:', resultData);
+    
+    // 안전한 JSON 파싱
+    let petInfo, answers;
+    try {
+      petInfo = resultData.pet_info ? JSON.parse(resultData.pet_info) : {};
+      console.log('Parsed petInfo:', petInfo);
+    } catch (e) {
+      console.error('Error parsing pet_info:', e);
+      petInfo = {};
+    }
+    
+    try {
+      answers = resultData.answers ? JSON.parse(resultData.answers) : [];
+      console.log('Parsed answers:', answers);
+    } catch (e) {
+      console.error('Error parsing answers:', e);
+      answers = [];
+    }
+    
     const constitution = resultData.constitution;
+    console.log('Constitution:', constitution);
     
     // 이메일 전송
     const emailResult = await sendDietEmail(email, petInfo, constitution, answers);
