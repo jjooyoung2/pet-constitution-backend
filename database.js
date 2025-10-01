@@ -20,9 +20,14 @@ pool.on('error', (err) => {
 // 테이블 생성
 const initDatabase = async () => {
   try {
+    // 기존 테이블 삭제 (순서 중요: 외래키 때문에)
+    await pool.query('DROP TABLE IF EXISTS consultations CASCADE');
+    await pool.query('DROP TABLE IF EXISTS results CASCADE');
+    await pool.query('DROP TABLE IF EXISTS users CASCADE');
+
     // 사용자 테이블
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE users (
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
@@ -36,7 +41,7 @@ const initDatabase = async () => {
 
     // 결과 테이블
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS results (
+      CREATE TABLE results (
         id SERIAL PRIMARY KEY,
         user_id INTEGER,
         pet_name VARCHAR(255) NOT NULL,
@@ -52,7 +57,7 @@ const initDatabase = async () => {
 
     // 상담 예약 테이블
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS consultations (
+      CREATE TABLE consultations (
         id SERIAL PRIMARY KEY,
         user_id INTEGER,
         name VARCHAR(255) NOT NULL,
