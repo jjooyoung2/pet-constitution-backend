@@ -20,13 +20,21 @@ pool.on('error', (err) => {
 // 테이블 생성
 const initDatabase = async () => {
   try {
-    // 기존 테이블 삭제 (순서 중요: 외래키 때문에)
-    await pool.query('DROP TABLE IF EXISTS consultations CASCADE');
-    await pool.query('DROP TABLE IF EXISTS results CASCADE');
-    await pool.query('DROP TABLE IF EXISTS users CASCADE');
+    console.log('데이터베이스 초기화 시작...');
     
-    // 잠시 대기
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // 테이블이 이미 존재하는지 확인
+    const checkUsers = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users'
+      );
+    `);
+    
+    if (checkUsers.rows[0].exists) {
+      console.log('테이블이 이미 존재합니다. 초기화를 건너뜁니다.');
+      return;
+    }
 
     // 사용자 테이블
     await pool.query(`
