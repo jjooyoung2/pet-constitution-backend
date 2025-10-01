@@ -149,18 +149,36 @@ router.post('/send-email', authenticateToken, async (req, res) => {
   try {
     const { resultId, email } = req.body;
     
+    console.log('=== EMAIL SEND BACKEND DEBUG ===');
+    console.log('Received resultId:', resultId, 'type:', typeof resultId);
+    console.log('Received email:', email);
+    
     if (!resultId || !email) {
+      console.log('Missing data - resultId:', !!resultId, 'email:', !!email);
       return res.status(400).json({
         success: false,
         message: '결과 ID와 이메일이 필요합니다.'
       });
     }
     
+    // resultId를 숫자로 변환
+    const numericResultId = parseInt(resultId);
+    if (isNaN(numericResultId)) {
+      console.log('Invalid resultId:', resultId);
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 결과 ID입니다.'
+      });
+    }
+    
     // 결과 조회
+    console.log('Querying with numericResultId:', numericResultId, 'userId:', req.user.userId);
     const result = await db.query(
       'SELECT * FROM results WHERE id = $1 AND user_id = $2',
-      [resultId, req.user.userId]
+      [numericResultId, req.user.userId]
     );
+    
+    console.log('Query result rows:', result.rows.length);
     
     if (result.rows.length === 0) {
       return res.status(404).json({
