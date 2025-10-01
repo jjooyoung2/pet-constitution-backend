@@ -31,6 +31,10 @@ router.post('/', optionalAuth, async (req, res) => {
     
     const { name, phone, preferredDate, content } = requestData;
     const userId = req.user ? req.user.userId : null;
+    
+    console.log('=== CREATE CONSULTATION ===');
+    console.log('User ID:', userId);
+    console.log('Request data:', { name, phone, preferredDate, content });
 
     // 입력값 검증
     if (!name || !phone || !preferredDate || !content) {
@@ -114,6 +118,8 @@ router.get('/my-consultations', authenticateToken, async (req, res) => {
     );
 
     console.log('Fetched user consultations:', result.rows.length);
+    console.log('User ID:', req.user.userId);
+    console.log('Consultations with user_id:', result.rows.map(c => ({ id: c.id, name: c.name, user_id: c.user_id })));
     res.json({ 
       success: true, 
       data: { consultations: result.rows }
