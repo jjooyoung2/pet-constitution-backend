@@ -21,15 +21,24 @@ const sendDietEmail = async (to, petInfo, constitution, answers) => {
     // 이메일 템플릿
     const emailContent = createEmailTemplate(petInfo, constitution, dietInfo, answers);
     
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@example.com';
+    console.log('From email:', fromEmail);
+    
     const msg = {
       to: to,
       from: {
-        email: process.env.SENDGRID_FROM_EMAIL || 'noreply@petconstitution.com',
+        email: fromEmail,
         name: 'Pet Constitution'
       },
       subject: `🐾 ${petInfo.pet_name}님의 맞춤 식단 가이드`,
       html: emailContent,
     };
+    
+    console.log('Email message:', {
+      to: msg.to,
+      from: msg.from,
+      subject: msg.subject
+    });
 
     await sgMail.send(msg);
     console.log('이메일 전송 성공:', to);

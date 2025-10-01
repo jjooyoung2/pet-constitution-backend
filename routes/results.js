@@ -220,7 +220,17 @@ router.post('/send-email', authenticateToken, async (req, res) => {
     }
     
     try {
-      answers = resultData.answers ? JSON.parse(resultData.answers) : [];
+      if (resultData.answers) {
+        // JSON인지 확인
+        if (resultData.answers.startsWith('[') || resultData.answers.startsWith('{')) {
+          answers = JSON.parse(resultData.answers);
+        } else {
+          // 쉼표로 구분된 문자열인 경우
+          answers = resultData.answers.split(',').map(item => item.trim());
+        }
+      } else {
+        answers = [];
+      }
       console.log('Parsed answers:', answers);
     } catch (e) {
       console.error('Error parsing answers:', e);
