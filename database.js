@@ -24,6 +24,9 @@ const initDatabase = async () => {
     await pool.query('DROP TABLE IF EXISTS consultations CASCADE');
     await pool.query('DROP TABLE IF EXISTS results CASCADE');
     await pool.query('DROP TABLE IF EXISTS users CASCADE');
+    
+    // 잠시 대기
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // 사용자 테이블
     await pool.query(`
