@@ -177,4 +177,56 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+// 관리자 계정 생성 (개발용)
+router.post('/create-admin', async (req, res) => {
+  try {
+    const { email = 'admin@onsol.com', password = 'admin123!', name = '관리자' } = req.body;
+    
+    // 기존 사용자 확인
+    const existingUser = await db.query('SELECT id, is_admin FROM users WHERE email = $1', [email]);
+    
+    if (existingUser.rows.length > 0) {
+      const user = existingUser.rows[0];
+      if (user.is_admin) {
+        return res.json({
+          success: true,
+          message: '관리자 계정이 이미 존재합니다.',
+          admin: { email, is_admin: true }
+        });
+      } else {
+        // 기존 사용자를 관리자로 승격
+        await db.query('UPDATE users SET is_admin = true WHERE email = $1', [email]);
+        return res.json({
+          success: true,
+          message: '기존 사용자가 관리자로 승격되었습니다.',
+          admin: { email, is_admin: true }
+        });
+      }
+    }
+
+    // 비밀번호 해시화
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // 관리자 계정 생성
+    await db.query(
+      'INSERT INTO users (email, password, name, is_admin) VALUES ($1, $2, $3, $4)',
+      [email, hashedPassword, name, true]
+    );
+
+    res.json({
+      success: true,
+      message: '관리자 계정이 성공적으로 생성되었습니다!',
+      admin: { email, is_admin: true }
+    });
+    
+  } catch (error) {
+    console.error('관리자 계정 생성 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '관리자 계정 생성 중 오류가 발생했습니다.'
+    });
+  }
+});
+
 module.exports = router;
