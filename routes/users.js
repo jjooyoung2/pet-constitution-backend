@@ -40,7 +40,7 @@ router.get('/:id', async (req, res) => {
   try {
     // 사용자 정보 조회
     const userResult = await db.query(
-      `SELECT id, email, name, phone, is_admin, created_at, updated_at
+      `SELECT id, email, name, phone, is_admin, created_at
        FROM users 
        WHERE id = $1`,
       [id]

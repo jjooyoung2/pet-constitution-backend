@@ -106,7 +106,7 @@ router.get('/my-consultations', authenticateToken, async (req, res) => {
   
   try {
     const result = await db.query(
-      `SELECT id, name, phone, preferred_date, content, status, created_at, updated_at
+      `SELECT id, name, phone, preferred_date, content, status, created_at
        FROM consultations 
        WHERE user_id = $1
        ORDER BY created_at DESC`,
@@ -171,8 +171,8 @@ router.put('/:id/status', async (req, res) => {
   
   try {
     const result = await db.query(
-      `UPDATE consultations SET status = $1, updated_at = $2 WHERE id = $3`,
-      [status, new Date().toISOString(), id]
+      `UPDATE consultations SET status = $1 WHERE id = $2`,
+      [status, id]
     );
 
     if (result.rowCount === 0) {
