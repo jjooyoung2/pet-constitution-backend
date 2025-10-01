@@ -1,70 +1,91 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { Pool } = require('pg');
 
-// 데이터베이스 파일 경로
-const dbPath = path.join(__dirname, 'pet_constitution.db');
-
-// 데이터베이스 연결
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('데이터베이스 연결 오류:', err.message);
-  } else {
-    console.log('SQLite 데이터베이스에 연결되었습니다.');
+// PostgreSQL 연결 설정
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
   }
 });
 
+// 연결 테스트
+pool.on('connect', () => {
+  console.log('PostgreSQL 데이터베이스에 연결되었습니다.');
+});
+
+pool.on('error', (err) => {
+  console.error('PostgreSQL 연결 오류:', err);
+});
+
 // 테이블 생성
-const initDatabase = () => {
-  // 사용자 테이블
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      name TEXT,
-      phone TEXT,
-      is_admin BOOLEAN DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+const initDatabase = async () => {
+  try {
+    // 사용자 테이블
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        name VARCHAR(255),
+        phone VARCHAR(20),
+        is_admin BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-  // 결과 테이블
-  db.run(`
-    CREATE TABLE IF NOT EXISTS results (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER,
-      pet_name TEXT NOT NULL,
-      pet_age TEXT,
-      pet_weight TEXT,
-      pet_symptoms TEXT,
-      answers TEXT NOT NULL,
-      constitution TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users (id)
-    )
-  `);
+    // 결과 테이블
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS results (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        pet_name VARCHAR(255) NOT NULL,
+        pet_age VARCHAR(50),
+        pet_weight VARCHAR(50),
+        pet_symptoms TEXT,
+        answers JSONB NOT NULL,
+        constitution VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    `);
 
-  // 상담 예약 테이블
-  db.run(`
-    CREATE TABLE IF NOT EXISTS consultations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER,
-      name TEXT NOT NULL,
-      phone TEXT NOT NULL,
-      preferred_date TEXT NOT NULL,
-      content TEXT NOT NULL,
-      status TEXT DEFAULT 'pending',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users (id)
-    )
-  `);
+    // 상담 예약 테이블
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS consultations (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        name VARCHAR(255) NOT NULL,
+        phone VARCHAR(20) NOT NULL,
+        preferred_date VARCHAR(50) NOT NULL,
+        content TEXT NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    `);
 
-  console.log('데이터베이스 테이블이 초기화되었습니다.');
+    console.log('PostgreSQL 데이터베이스 테이블이 초기화되었습니다.');
+  } catch (error) {
+    console.error('데이터베이스 초기화 오류:', error);
+  }
 };
 
 // 데이터베이스 초기화 실행
 initDatabase();
+
+// PostgreSQL용 query 함수 래퍼
+const db = {
+  query: async (text, params) => {
+    try {
+      const result = await pool.query(text, params);
+      return result;
+    } catch (error) {
+      console.error('데이터베이스 쿼리 오류:', error);
+      throw error;
+    }
+  }
+};
 
 module.exports = db;
