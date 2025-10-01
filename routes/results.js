@@ -95,6 +95,7 @@ router.get('/my-results', authenticateToken, async (req, res) => {
     );
 
     console.log('Fetched user results:', result.rows.length);
+    console.log('User results data:', JSON.stringify(result.rows, null, 2));
     res.json({ 
       success: true, 
       data: { results: result.rows }
