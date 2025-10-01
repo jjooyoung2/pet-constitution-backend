@@ -4,9 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const config = require('./config');
 
-// 데이터베이스 초기화
-const initDatabase = require('./init-db');
-initDatabase();
+// 데이터베이스 초기화는 database.js에서 자동으로 실행됩니다
 
 // 라우터 import
 const authRoutes = require('./routes/auth');
