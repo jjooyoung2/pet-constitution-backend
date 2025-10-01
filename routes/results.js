@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../database');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
+const { sendDietEmail } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -139,6 +140,60 @@ router.get('/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 이메일로 식단 전송
+router.post('/send-email', authenticateToken, async (req, res) => {
+  try {
+    const { resultId, email } = req.body;
+    
+    if (!resultId || !email) {
+      return res.status(400).json({
+        success: false,
+        message: '결과 ID와 이메일이 필요합니다.'
+      });
+    }
+    
+    // 결과 조회
+    const result = await db.query(
+      'SELECT * FROM results WHERE id = $1 AND user_id = $2',
+      [resultId, req.user.userId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '결과를 찾을 수 없습니다.'
+      });
+    }
+    
+    const resultData = result.rows[0];
+    const petInfo = JSON.parse(resultData.pet_info);
+    const answers = JSON.parse(resultData.answers);
+    const constitution = resultData.constitution;
+    
+    // 이메일 전송
+    const emailResult = await sendDietEmail(email, petInfo, constitution, answers);
+    
+    if (emailResult.success) {
+      res.json({
+        success: true,
+        message: '이메일이 성공적으로 전송되었습니다.'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: emailResult.message
+      });
+    }
+    
+  } catch (error) {
+    console.error('이메일 전송 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '이메일 전송 중 오류가 발생했습니다.'
     });
   }
 });
