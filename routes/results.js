@@ -147,9 +147,28 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // 이메일로 식단 전송
 router.post('/send-email', authenticateToken, async (req, res) => {
   try {
-    const { resultId, email } = req.body;
-    
     console.log('=== EMAIL SEND BACKEND DEBUG ===');
+    console.log('Raw body:', req.body);
+    console.log('Content-Type:', req.get('Content-Type'));
+    
+    let requestData = req.body;
+    
+    // Content-Type이 text/plain인 경우 JSON 파싱
+    if (req.get('Content-Type') === 'text/plain;charset=UTF-8') {
+      try {
+        requestData = JSON.parse(req.body);
+        console.log('Parsed JSON from text/plain:', requestData);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        return res.status(400).json({
+          success: false,
+          message: 'JSON 파싱 오류가 발생했습니다.'
+        });
+      }
+    }
+    
+    const { resultId, email } = requestData;
+    
     console.log('Received resultId:', resultId, 'type:', typeof resultId);
     console.log('Received email:', email);
     
