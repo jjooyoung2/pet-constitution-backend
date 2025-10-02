@@ -221,12 +221,23 @@ router.post('/send-email', authenticateToken, async (req, res) => {
     
     try {
       if (resultData.answers) {
-        // JSON인지 확인
-        if (resultData.answers.startsWith('[') || resultData.answers.startsWith('{')) {
-          answers = JSON.parse(resultData.answers);
-        } else {
-          // 쉼표로 구분된 문자열인 경우
-          answers = resultData.answers.split(',').map(item => item.trim());
+        // 이미 배열인 경우
+        if (Array.isArray(resultData.answers)) {
+          answers = resultData.answers;
+        } 
+        // 문자열인 경우
+        else if (typeof resultData.answers === 'string') {
+          // JSON인지 확인
+          if (resultData.answers.startsWith('[') || resultData.answers.startsWith('{')) {
+            answers = JSON.parse(resultData.answers);
+          } else {
+            // 쉼표로 구분된 문자열인 경우
+            answers = resultData.answers.split(',').map(item => item.trim());
+          }
+        }
+        // 다른 타입인 경우
+        else {
+          answers = [];
         }
       } else {
         answers = [];
